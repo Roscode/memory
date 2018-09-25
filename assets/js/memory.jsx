@@ -134,14 +134,19 @@ export class Memory extends React.Component {
   render() {
     const {
       tileClicked,
-      state: { tiles }
+      state: { tiles, delay }
     } = this;
     const winnerMessage = this.youWin() ? (
       `You Win! Your final score was: ${this.getScore()}`
     ) : (
       <Score score={this.getScore()} />
     );
-    const onRestart = () => this.setState(getInitialState);
+    const onRestart = () => {
+      this.setState(getInitialState);
+      if (delay) {
+        clearTimeout(delay.timer);
+      }
+    };
     return (
       <div className="memory">
         <h1>The Game of Memory</h1>
