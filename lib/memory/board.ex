@@ -12,7 +12,13 @@ defmodule Memory.Game.Board do
   end
 
   def same_letter(tiles, {x1, y1}, {x2, y2}) do
-    Enum.at(tiles, 4 * y1 + x1) == Enum.at(tiles, 4 * y2 + x2)
+    %{letter: l1} = Enum.at(tiles, index(x1, y1));
+    %{letter: l2} = Enum.at(tiles, index(x2, y2));
+    l1 == l2
+  end
+
+  def index(x, y) do
+    4 * y + x
   end
 
   def client_view(tiles) do
