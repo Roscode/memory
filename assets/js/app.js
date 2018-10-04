@@ -22,12 +22,11 @@ import game_init from "./memory";
 $(() => {
   let root = $("#root")[0];
   if (root) {
-    let name = window.location.pathname.split("/").pop();
+    let name = window.gameName || "default";
     let channel = socket.channel(`games:${name}`, {});
     game_init(root, channel);
-  }
-  else {
-    $("#game-name-input").on("change", function({target: {value: name}}) {
+  } else {
+    $("#game-name-input").on("change", function({ target: { value: name } }) {
       $("#join-game-button").attr("href", `/game/${name}`);
     });
   }

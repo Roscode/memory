@@ -3,7 +3,7 @@ import ReactDOM from "react-dom";
 import _ from "lodash";
 
 export default function game_init(root, channel) {
-  ReactDOM.render(<Memory channel={channel}/>, root);
+  ReactDOM.render(<Memory channel={channel} />, root);
 }
 
 export const LETTERS = "AABBCCDDEEFFGGHH".split("");
@@ -40,7 +40,7 @@ export const Tile = ({ letter, completed, onClick, visible }) => (
   <td>
     <button
       onClick={() => {
-        if (!completed) onClick();
+        if (!completed && !visible) onClick();
       }}
     >
       {completed ? "yay" : visible ? letter : "?"}
@@ -54,110 +54,49 @@ export const Restart = ({ onRestart }) => (
   <button onClick={onRestart}>Restart</button>
 );
 
-const getInitialState = () => ({
-  tiles: randomBoard(),
-  guesses: [],
-  partialGuess: null,
-  delay: null
-});
-
 export class Memory extends React.Component {
   constructor(props) {
     super(props);
     this.channel = props.channel;
-    this.channel.join()
-      .receive("ok", resp => {
-        console.log("Joined successfully", resp); // eslint-disable-line no-console
-      })
+    this.state = { loading: true };
+    this.channel
+      .join()
+      .receive("ok", ({ game }) =>
+        this.setState({ loading: false, game: JSON.parse(game) })
+      )
       .receive("error", resp => {
         console.log("Unable to join", resp); // eslint-disable-line no-console
       });
-    this.state = getInitialState();
   }
 
   tileClicked(x, y) {
-    const { partialGuess, guesses, tiles, delay } = this.state;
-    if (partialGuess) {
-      const [px, py] = partialGuess;
-      const newGuess = [partialGuess, [x, y]];
-      const isCorrect =
-        _.get(tiles, [y, x, "letter"]) === _.get(tiles, [py, px, "letter"]);
-      const setTileState = tile =>
-        Object.assign({}, tile, {
-          visible: false,
-          completed: isCorrect
-        });
-      const onEnd = () =>
-        this.setState({
-          tiles: _(tiles)
-            .update([y, x], setTileState)
-            .update([py, px], setTileState)
-            .value(),
-          delay: null
-        });
-      const timer = setTimeout(onEnd, 1500);
-      this.setState({
-        partialGuess: null,
-        guesses: [newGuess, ...guesses],
-        tiles: _.set(tiles, [y, x, "visible"], true),
-        delay: { onEnd, timer }
-      });
-    } else {
-      if (delay) {
-        const { onEnd, timer } = delay;
-        clearTimeout(timer);
-        onEnd();
-      }
-      this.setState({
-        partialGuess: [x, y],
-        tiles: _.set(tiles, [y, x, "visible"], true)
-      });
-    }
-  }
-
-  youWin() {
-    return _.reduce(
-      this.state.tiles,
-      (outerAcc, row) => {
-        return (
-          outerAcc &&
-          _.reduce(
-            row,
-            (acc, { completed }) => {
-              return acc && completed;
-            },
-            true
-          )
-        );
-      },
-      true
-    );
-  }
-
-  getScore() {
-    const { guesses, partialGuess } = this.state;
-    return 2 * guesses.length + (_.isNull(partialGuess) ? 0 : 1);
+    this.channel
+      .push("guess", { x, y })
+      .receive("ok", ({ game }) => {
+        this.setState({ game: JSON.parse(game) });
+      })
+      .receive("error", r => console.log(r)); // eslint-disable-line no-console
   }
 
   render() {
     const {
       tileClicked,
-      state: { tiles, delay }
+      state: { loading, game }
     } = this;
-    const winnerMessage = this.youWin() ? (
-      `You Win! Your final score was: ${this.getScore()}`
+    if (loading) return <div>Joining the game...</div>;
+    const { tiles, score, won } = game;
+    const winnerMessage = won ? (
+      `You Win! Your final score was: ${score}`
     ) : (
-      <Score score={this.getScore()} />
+      <Score score={score} />
     );
     const onRestart = () => {
-      this.setState(getInitialState);
-      if (delay) {
-        clearTimeout(delay.timer);
-      }
+      this.channel
+        .push("restart")
+        .receive("ok", ({ game }) => this.setState({ game }));
     };
     return (
       <div className="memory">
-        <h1>The Game of Memory</h1>
         <Board tiles={tiles} onTileClicked={tileClicked.bind(this)} />
         {winnerMessage}
         <Restart onRestart={onRestart} />

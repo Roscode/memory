@@ -1,3 +1,13 @@
-<div id="root">
-  React app loading...
+<script>
+  window.gameName = "<%= @game %>";
+</script>
+
+<div class="row">
+  <div class="column">
+    <h1>The Game of Memory!</h1>
+    <h2>Game: <%= @game %></h1>
+    <div id="root">
+      React app loading...
+    </div>
+  </div>
 </div>
