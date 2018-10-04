@@ -2,8 +2,8 @@ import React from "react";
 import ReactDOM from "react-dom";
 import _ from "lodash";
 
-export default function game_init(root) {
-  ReactDOM.render(<Memory />, root);
+export default function game_init(root, channel) {
+  ReactDOM.render(<Memory channel={channel}/>, root);
 }
 
 export const LETTERS = "AABBCCDDEEFFGGHH".split("");
@@ -64,6 +64,14 @@ const getInitialState = () => ({
 export class Memory extends React.Component {
   constructor(props) {
     super(props);
+    this.channel = props.channel;
+    this.channel.join()
+      .receive("ok", resp => {
+        console.log("Joined successfully", resp); // eslint-disable-line no-console
+      })
+      .receive("error", resp => {
+        console.log("Unable to join", resp); // eslint-disable-line no-console
+      });
     this.state = getInitialState();
   }
 
