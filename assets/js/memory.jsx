@@ -8,18 +8,6 @@ export default function game_init(root, channel) {
 
 export const LETTERS = "AABBCCDDEEFFGGHH".split("");
 
-export function randomBoard() {
-  const base = [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]];
-  const availableLetters = _.shuffle(LETTERS);
-  return _.map(base, row =>
-    _.map(row, () => ({
-      letter: availableLetters.pop(),
-      completed: false,
-      visible: false
-    }))
-  );
-}
-
 // A board is a 4x4 grid of buttons
 // with x being left->right 0->3 and y being top->bottom 0->3
 export const Board = ({ tiles, onTileClicked }) => (
@@ -48,8 +36,6 @@ export const Tile = ({ letter, completed, onClick, visible }) => (
   </td>
 );
 
-export const Score = ({ score }) => <p>Your score is: {score}</p>;
-
 export const Restart = ({ onRestart }) => (
   <button onClick={onRestart}>Restart</button>
 );
@@ -72,8 +58,20 @@ export class Memory extends React.Component {
   tileClicked(x, y) {
     this.channel
       .push("guess", { x, y })
-      .receive("ok", ({ game }) => {
-        this.setState({ game: JSON.parse(game) });
+      .receive("ok", ({ game: raw, temp }) => {
+        const game = JSON.parse(raw);
+        this.setState({ game });
+        if (temp) {
+          window.setTimeout(
+            () =>
+              this.channel
+                .push("get")
+                .receive("ok", ({ game: raw }) =>
+                  this.setState({ game: JSON.parse(raw) })
+                ),
+            1500
+          );
+        }
       })
       .receive("error", r => console.log(r)); // eslint-disable-line no-console
   }
@@ -85,20 +83,19 @@ export class Memory extends React.Component {
     } = this;
     if (loading) return <div>Joining the game...</div>;
     const { tiles, score, won } = game;
-    const winnerMessage = won ? (
-      `You Win! Your final score was: ${score}`
-    ) : (
-      <Score score={score} />
-    );
     const onRestart = () => {
       this.channel
         .push("restart")
-        .receive("ok", ({ game }) => this.setState({ game }));
+        .receive("ok", ({ game }) => this.setState({ game: JSON.parse(game) }));
     };
     return (
       <div className="memory">
         <Board tiles={tiles} onTileClicked={tileClicked.bind(this)} />
-        {winnerMessage}
+        <p>
+          {won
+            ? `You Win! You final score was: ${score}`
+            : `You score is: ${score}`}
+        </p>
         <Restart onRestart={onRestart} />
       </div>
     );

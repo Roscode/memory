@@ -16,24 +16,42 @@ defmodule Memory.Game do
   def client_view(%{tiles: tiles, guesses: g, partial_guess: pg}) do
       %{tiles: Board.client_view(tiles),
         score: get_score(g, pg),
-        won: won_game(tiles)}
+        won: won_game(tiles),
+        flip_delay: length(g) > 0 and !pg}
         |> Jason.encode!
   end
 
   def flip(%{tiles: tiles, guesses: guesses, partial_guess: pg}, new_guess) do
     if pg do
       is_correct = Board.same_letter(tiles, pg, new_guess)
-      tile_state = %{ visible: false, completed: is_correct }
-      tiles = tiles
-              |> Board.update_tile(pg, tile_state)
-              |> Board.update_tile(new_guess, tile_state)
-      %{tiles: tiles,
-        guesses: [{pg, new_guess}|guesses],
-        partial_guess: nil}
+      if is_correct do
+        tile_state = %{completed: true}
+        tiles = tiles
+                |> Board.update_tile(pg, tile_state)
+                |> Board.update_tile(new_guess, tile_state)
+        {%{tiles: tiles,
+          guesses: [{pg, new_guess}|guesses],
+          partial_guess: nil}, nil}
+      else
+        tile_state = %{ visible: true }
+        visible_tiles = tiles
+                |> Board.update_tile(pg, tile_state)
+                |> Board.update_tile(new_guess, tile_state)
+        tile_state = %{ visible: false }
+        hidden_tiles = tiles
+                |> Board.update_tile(pg, tile_state)
+                |> Board.update_tile(new_guess, tile_state)
+        {%{tiles: hidden_tiles,
+          guesses: [{pg, new_guess}|guesses],
+          partial_guess: nil},
+          %{tiles: visible_tiles,
+          guesses: [{pg, new_guess}|guesses],
+          partial_guess: nil}}
+      end
     else
-      %{tiles: Board.update_tile(tiles, new_guess, %{ visible: true }),
+      {%{tiles: Board.update_tile(tiles, new_guess, %{ visible: true }),
         guesses: guesses,
-        partial_guess: new_guess}
+        partial_guess: new_guess}, nil}
     end
   end
 
