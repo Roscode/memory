@@ -27,7 +27,7 @@ $(() => {
     game_init(root, channel);
   } else {
     $("#game-name-input").on("change", function({ target: { value: name } }) {
-      $("#join-game-button").attr("href", `/game/${name}`);
+      $("#join-game-button").attr("href", `/game/${encodeURIComponent(name)}`);
     });
   }
 });
