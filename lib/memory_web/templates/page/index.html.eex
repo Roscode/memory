@@ -2,6 +2,6 @@
   <div class="column">
     <h1>Join a Game</h1>
     <p><input type="text" id="game-name-input"></p>
-    <a class="button" id="join-game-button">Join</a>
+    <p><a class="button" id="join-game-button">Join</a></p>
   <div>
 </div>
