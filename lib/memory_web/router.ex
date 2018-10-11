@@ -7,6 +7,7 @@ defmodule MemoryWeb.Router do
     plug :fetch_flash
     plug :protect_from_forgery
     plug :put_secure_browser_headers
+    plug MemoryWeb.Plugs.PutUserToken
   end
 
   pipeline :api do
@@ -18,8 +19,8 @@ defmodule MemoryWeb.Router do
 
     get "/", PageController, :index
     get "/game/:game", PageController, :game
+    post "/join", PageController, :join
   end
-
 
   # Other scopes may use custom stacks.
   # scope "/api", MemoryWeb do

@@ -52,8 +52,8 @@ let socket = new Socket("/socket", { params: { token: window.userToken } });
 //       end
 //     end
 //
-// Finally, connect to the socket:
-socket.connect();
+// ~Finally, connect to the socket~
+// We are doing this in app.js now
 
 // Now that you are connected, you can join channels with a topic:
 export default socket;

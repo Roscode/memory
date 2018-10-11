@@ -15,6 +15,7 @@ import $ from "jquery";
 // Import local files
 //
 // Local files can be imported directly using relative paths, for example:
+// import { Socket } from "phoenix";
 import socket from "./socket";
 
 import game_init from "./memory";
@@ -22,12 +23,9 @@ import game_init from "./memory";
 $(() => {
   let root = $("#root")[0];
   if (root) {
-    let name = window.gameName || "default";
-    let channel = socket.channel(`games:${name}`, {});
+    socket.connect();
+    let name = window.gameName || "";
+    let channel = socket.channel(`games:${name}`);
     game_init(root, channel);
-  } else {
-    $("#game-name-input").on("change", function({ target: { value: name } }) {
-      $("#join-game-button").attr("href", `/game/${encodeURIComponent(name)}`);
-    });
   }
 });
