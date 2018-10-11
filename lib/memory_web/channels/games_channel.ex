@@ -2,41 +2,35 @@ defmodule MemoryWeb.GamesChannel do
   use MemoryWeb, :channel
 
   alias Memory.Game
-  alias Memory.BackupAgent
+  alias Memory.GameServer
 
-  def join("games:" <> name, payload, socket) do
+  def join("games:" <> game_name, payload, socket) do
     if authorized?(payload) do
-      game = BackupAgent.get(name) || Game.new()
       socket = socket
-               |> assign(:game, game)
-               |> assign(:name, name)
-      BackupAgent.put(name, game)
-      {:ok, %{"join" => name, "game" => Game.client_view(game)}, socket}
+               |> assign(:game, game_name)
+      game = GameServer.view(game_name)
+      {:ok, %{"lobby" => game_name, "game" => game}, socket}
     else
       {:error, %{reason: "unauthorized"}}
     end
   end
 
+  def handle_in("join", _payload, socket) do
+    game = GameServer.join(socket.assigns[:game], socket.assign[:user])
+    broadcast! socket, "update", %{"game" => game}
+    {:noreply, socket}
+  end
+
   def handle_in("guess", %{"x" => x, "y" => y}, socket) do
-    name = socket.assigns[:name]
-    {final_game, temp_game} = Game.flip(socket.assigns[:game], {x, y})
-    socket = assign(socket, :game, final_game)
-    BackupAgent.put(name, final_game)
-    temp = !!temp_game
-    game = if temp do temp_game else final_game end
-    {:reply, {:ok, %{"game" => Game.client_view(game), "temp" => temp}}, socket}
+    game = GameServer.flip(socket.assigns[:game], {x, y}, socket.assigns[:user])
+    broadcast! socket, "update", %{"game" => game}
+    {:noreply, socket}
   end
 
   def handle_in("restart", _, socket) do
-    game = Game.new()
-    name = socket.assigns[:name]
-    socket = assign(socket, :game, game)
-    BackupAgent.put(name, game)
-    {:reply, {:ok, %{"game" => Game.client_view(game)}}, socket}
-  end
-
-  def handle_in("get", _, socket) do
-    {:reply, {:ok, %{"game" => Game.client_view(socket.assigns[:game])}}, socket}
+    game = GameServer.restart(socket.assigns[:game])
+    broadcast! socket, "update", %{"game" => game}
+    {:noreply, socket}
   end
 
   # Add authorization logic here as required.
