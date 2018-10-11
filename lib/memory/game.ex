@@ -2,7 +2,7 @@ defmodule Memory.Game do
   alias Memory.Game.Board
 
   def new() do
-    %{tiles: Board.new(), guesses: [], partial_guess: nil}
+    %{tiles: Board.new(), guesses: [], partial_guess: nil, players: %{}, turn: nil}
   end
 
   def won_game(tiles) do
@@ -13,15 +13,20 @@ defmodule Memory.Game do
     2 * length(guesses) + (if partial_guess do 1 else 0 end)
   end
 
-  def client_view(%{tiles: tiles, guesses: g, partial_guess: pg}) do
-      %{tiles: Board.client_view(tiles),
-        score: get_score(g, pg),
-        won: won_game(tiles),
-        flip_delay: length(g) > 0 and !pg}
+  def client_view(%{tiles: tiles, guesses: g, partial_guess: pg, players: players, turn: t}) do
+    %{tiles: Board.client_view(tiles),
+      score: get_score(g, pg),
+      won: won_game(tiles),
+      flip_delay: length(g) > 0 and !pg,
+      players: players}
         |> Jason.encode!
   end
 
-  def flip(%{tiles: tiles, guesses: guesses, partial_guess: pg}, new_guess) do
+  def add_player(game, user) do
+    put_in(game, [:players, user], 0)
+  end
+
+  def flip(%{tiles: tiles, guesses: guesses, partial_guess: pg, players: players, turn: t}, new_guess) do
     if pg do
       is_correct = Board.same_letter(tiles, pg, new_guess)
       if is_correct do
