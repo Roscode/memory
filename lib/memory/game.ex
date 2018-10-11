@@ -25,7 +25,7 @@ defmodule Memory.Game do
     if pg do
       is_correct = Board.same_letter(tiles, pg, new_guess)
       if is_correct do
-        tile_state = %{completed: true}
+        tile_state = %{ completed: true }
         tiles = tiles
                 |> Board.update_tile(pg, tile_state)
                 |> Board.update_tile(new_guess, tile_state)

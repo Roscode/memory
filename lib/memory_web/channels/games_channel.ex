@@ -17,8 +17,6 @@ defmodule MemoryWeb.GamesChannel do
     end
   end
 
-  # Channels can be used in a request/response fashion
-  # by sending replies to requests from the client
   def handle_in("guess", %{"x" => x, "y" => y}, socket) do
     name = socket.assigns[:name]
     {final_game, temp_game} = Game.flip(socket.assigns[:game], {x, y})

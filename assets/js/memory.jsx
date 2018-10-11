@@ -93,8 +93,8 @@ export class Memory extends React.Component {
         <Board tiles={tiles} onTileClicked={tileClicked.bind(this)} />
         <p>
           {won
-            ? `You Win! You final score was: ${score}`
-            : `You score is: ${score}`}
+            ? `You Win! Your final score was: ${score}`
+            : `Your score is: ${score}`}
         </p>
         <Restart onRestart={onRestart} />
       </div>

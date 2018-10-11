@@ -8,7 +8,7 @@ defmodule Memory.Game.Board do
   end
 
   def update_tile(tiles, {x, y}, update_map) do
-    List.update_at(tiles, 4 * y + x, &(Map.merge(&1, update_map)))
+    List.update_at(tiles, index(x, y), &(Map.merge(&1, update_map)))
   end
 
   def same_letter(tiles, {x1, y1}, {x2, y2}) do
