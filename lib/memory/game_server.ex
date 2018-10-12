@@ -1,6 +1,8 @@
 defmodule Memory.GameServer do
   use GenServer
 
+  alias Memory.Game
+
   defp reg(id) do
     {:via, Registry, {Memory.GameRegistry, id}}
   end
@@ -18,7 +20,7 @@ defmodule Memory.GameServer do
   end
 
   def start_link(name) do
-    GenServer.start_link(__MODULE__, [3], name: reg(name))
+    GenServer.start_link(__MODULE__, Game.new(), name: reg(name))
   end
 
   defp get_game(game_name) do
@@ -56,25 +58,27 @@ defmodule Memory.GameServer do
   end
 
   @impl true
-  def handle_call({:view, user}, _from, state) do
+  def handle_call(:view, _from, state) do
     {:reply, {:ok, Game.client_view(state)}, state}
   end
 
   @impl true
   def handle_call({:join, user}, _from, state) do
-    game = Game.join(state, user)
+    game = Game.add_player(state, user)
     {:reply, {:ok, Game.client_view(game)}, game}
   end
 
   @impl true
   def handle_call({:flip, coords, user}, _from, state) do
-    game = Game.flip(state, coords, user)
-    {:reply, {:ok, Game.client_view(game)}, game}
+    IO.inspect(coords)
+    IO.inspect(user)
+    {final_game, temp_game} = Game.flip(state, coords, user)
+    {:reply, {:ok, Game.client_view(if temp_game do temp_game else final_game end)}, final_game}
   end
 
   @impl true
   def handle_call(:restart, _from, state) do
-    game = Game.restart(state)
+    game = Game.new()
     {:reply, {:ok, Game.client_view(game)}, game}
   end
 end

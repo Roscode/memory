@@ -1,14 +1,13 @@
 defmodule MemoryWeb.GamesChannel do
   use MemoryWeb, :channel
 
-  alias Memory.Game
   alias Memory.GameServer
 
   def join("games:" <> game_name, payload, socket) do
     if authorized?(payload) do
       socket = socket
                |> assign(:game, game_name)
-      game = GameServer.view(game_name)
+      {:ok, game} = GameServer.view(game_name)
       {:ok, %{"lobby" => game_name, "game" => game}, socket}
     else
       {:error, %{reason: "unauthorized"}}
@@ -16,19 +15,20 @@ defmodule MemoryWeb.GamesChannel do
   end
 
   def handle_in("join", _payload, socket) do
-    game = GameServer.join(socket.assigns[:game], socket.assign[:user])
+    IO.inspect(socket.assigns[:user])
+    {:ok, game} = GameServer.join(socket.assigns[:game], socket.assigns[:user])
     broadcast! socket, "update", %{"game" => game}
     {:noreply, socket}
   end
 
   def handle_in("flip", %{"x" => x, "y" => y}, socket) do
-    game = GameServer.flip(socket.assigns[:game], {x, y}, socket.assigns[:user])
+    {:ok, game} = GameServer.flip(socket.assigns[:game], {x, y}, socket.assigns[:user])
     broadcast! socket, "update", %{"game" => game}
     {:noreply, socket}
   end
 
   def handle_in("restart", _, socket) do
-    game = GameServer.restart(socket.assigns[:game])
+    {:ok, game} = GameServer.restart(socket.assigns[:game])
     broadcast! socket, "update", %{"game" => game}
     {:noreply, socket}
   end

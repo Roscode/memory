@@ -13,32 +13,56 @@ defmodule Memory.Game do
     2 * length(guesses) + (if partial_guess do 1 else 0 end)
   end
 
+  def winner?(tiles, players) do
+    if won_game(tiles) do
+      player_keys = Map.keys(players)
+      player1_score = Map.fetch(players, player_keys[0])
+      player2_score = Map.fetch(players, player_keys[1])
+      if player1_score > player2_score do
+        player_keys[0]
+      else
+        player_keys[1]
+      end
+    else
+      false
+    end
+  end
+
   def client_view(%{tiles: tiles, guesses: g, partial_guess: pg, players: players, turn: t}) do
     %{tiles: Board.client_view(tiles),
-      score: get_score(g, pg),
-      won: won_game(tiles),
-      flip_delay: length(g) > 0 and !pg,
-      players: players}
-        |> Jason.encode!
+      winner: winner?(tiles, players),
+      players: players,
+      turn: if t do t else false end,
+      inProgress: Enum.count(players) > 1}
+      |> Jason.encode!
   end
 
   def add_player(game, user) do
-    put_in(game, [:players, user], 0)
-    if (!game[:turn]) do
-      put_in(game, [:turn], user)
+    if Enum.count(game[:players]) < 2 do
+      IO.inspect("there are fewer than 2 players")
+      new_game = put_in(game, [:players, user], 0)
+      if (!game[:turn]) do
+        put_in(new_game, [:turn], user)
+      else
+        new_game
+      end
+    else
+      game
     end
   end
 
   def next_turn(players, user) do
     player_keys = Map.keys(players)
-    if (player_keys[0] == user) do
-      player_keys[1]
+    IO.inspect(player_keys)
+    if ((hd player_keys) == user) do
+      hd tl player_keys
     else
-      player_keys[0]
+      hd player_keys
     end
   end
 
-  def flip(%{tiles: tiles, guesses: guesses, partial_guess: pg, players: players, turn: t}, new_guess, user) do
+  def flip(game, new_guess, user) do
+    %{tiles: tiles, guesses: guesses, partial_guess: pg, players: players, turn: t} = game
     if (user == t) do
       if pg do
         is_correct = Board.same_letter(tiles, pg, new_guess)
@@ -81,6 +105,8 @@ defmodule Memory.Game do
           players: players,
           turn: t}, nil}
       end
+    else
+      {game, nil}
     end
   end
 

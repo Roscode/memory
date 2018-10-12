@@ -38,9 +38,10 @@ export const Restart = ({ show, onRestart }) =>
   show ? <button onClick={onRestart}>Restart</button> : null;
 
 export const ScoreBoard = ({ players, turn }) =>
-  _.map(players, player => (
-    <div>
+  _.map(_.toPairs(players), ([player, score]) => (
+    <div key={player}>
       <p>Player: {player}</p>
+      <p>Score: {score}</p>
       {player == turn ? <p>"Active"</p> : null}
     </div>
   ));
@@ -54,15 +55,17 @@ export const ActiveGame = ({
   onRestart
 }) => (
   <div className="memory">
-    <ScoreBoard players={players} turn={turn} />
-    <Board tiles={tiles} onTileClicked={tileClicked.bind(this)} />
+    <div style={{ display: "flex", justifyContent: "space-between" }}>
+      <ScoreBoard players={players} turn={turn} />
+    </div>
+    <Board tiles={tiles} onTileClicked={tileClicked} />
     <Restart show={!!winner} onRestart={onRestart} />
   </div>
 );
 
 export const Lobby = ({ joinGame }) => (
   <div className="memory">
-    <button onClick={joinGame} />
+    <button onClick={joinGame}>Join this game!</button>
   </div>
 );
 
@@ -71,9 +74,10 @@ export class Memory extends React.Component {
     super(props);
     this.channel = props.channel;
     this.state = { loading: true };
-    this.channel.on("update", ({ game: raw }) =>
-      this.setState({ game: JSON.parse(raw) })
-    );
+    this.channel.on("update", ({ game: raw }) => {
+      console.log(JSON.parse(raw)); // eslint-disable-line no-console
+      this.setState({ game: JSON.parse(raw) });
+    });
     this.channel
       .join()
       .receive("ok", ({ game: raw }) =>
@@ -103,7 +107,7 @@ export class Memory extends React.Component {
           <ActiveGame
             {...game}
             onRestart={onRestart}
-            tileClicked={tileClicked}
+            tileClicked={tileClicked.bind(this)}
           />
         ) : (
           <Lobby joinGame={joinGame} />
