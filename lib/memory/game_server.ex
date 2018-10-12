@@ -62,17 +62,20 @@ defmodule Memory.GameServer do
 
   @impl true
   def handle_call({:join, user}, _from, state) do
-    {:reply, {:ok, Game.client_view(state)}, state}
+    game = Game.join(state, user)
+    {:reply, {:ok, Game.client_view(game)}, game}
   end
 
   @impl true
-  def handle_call({:flip, coords, user}, state) do
-    {:reply, {:ok, Game.client_view(state)}, state}
+  def handle_call({:flip, coords, user}, _from, state) do
+    game = Game.flip(state, coords, user)
+    {:reply, {:ok, Game.client_view(game)}, game}
   end
 
   @impl true
-  def handle_call(:restart, state) do
-    {:reply, {:ok, Game.client_view(state)}, state}
+  def handle_call(:restart, _from, state) do
+    game = Game.restart(state)
+    {:reply, {:ok, Game.client_view(game)}, game}
   end
 end
 

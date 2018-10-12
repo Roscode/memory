@@ -21,7 +21,7 @@ defmodule MemoryWeb.GamesChannel do
     {:noreply, socket}
   end
 
-  def handle_in("guess", %{"x" => x, "y" => y}, socket) do
+  def handle_in("flip", %{"x" => x, "y" => y}, socket) do
     game = GameServer.flip(socket.assigns[:game], {x, y}, socket.assigns[:user])
     broadcast! socket, "update", %{"game" => game}
     {:noreply, socket}

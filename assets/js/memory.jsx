@@ -6,8 +6,6 @@ export default function game_init(root, channel) {
   ReactDOM.render(<Memory channel={channel} />, root);
 }
 
-export const LETTERS = "AABBCCDDEEFFGGHH".split("");
-
 // A board is a 4x4 grid of buttons
 // with x being left->right 0->3 and y being top->bottom 0->3
 export const Board = ({ tiles, onTileClicked }) => (
@@ -36,8 +34,36 @@ export const Tile = ({ letter, completed, onClick, visible }) => (
   </td>
 );
 
-export const Restart = ({ onRestart }) => (
-  <button onClick={onRestart}>Restart</button>
+export const Restart = ({ show, onRestart }) =>
+  show ? <button onClick={onRestart}>Restart</button> : null;
+
+export const ScoreBoard = ({ players, turn }) =>
+  _.map(players, player => (
+    <div>
+      <p>Player: {player}</p>
+      {player == turn ? <p>"Active"</p> : null}
+    </div>
+  ));
+
+export const ActiveGame = ({
+  tiles,
+  winner,
+  players,
+  turn,
+  tileClicked,
+  onRestart
+}) => (
+  <div className="memory">
+    <ScoreBoard players={players} turn={turn} />
+    <Board tiles={tiles} onTileClicked={tileClicked.bind(this)} />
+    <Restart show={!!winner} onRestart={onRestart} />
+  </div>
+);
+
+export const Lobby = ({ joinGame }) => (
+  <div className="memory">
+    <button onClick={joinGame} />
+  </div>
 );
 
 export class Memory extends React.Component {
@@ -45,10 +71,13 @@ export class Memory extends React.Component {
     super(props);
     this.channel = props.channel;
     this.state = { loading: true };
+    this.channel.on("update", ({ game: raw }) =>
+      this.setState({ game: JSON.parse(raw) })
+    );
     this.channel
       .join()
-      .receive("ok", ({ game }) =>
-        this.setState({ loading: false, game: JSON.parse(game) })
+      .receive("ok", ({ game: raw }) =>
+        this.setState({ loading: false, game: JSON.parse(raw) })
       )
       .receive("error", resp => {
         console.log("Unable to join", resp); // eslint-disable-line no-console
@@ -56,24 +85,7 @@ export class Memory extends React.Component {
   }
 
   tileClicked(x, y) {
-    this.channel
-      .push("guess", { x, y })
-      .receive("ok", ({ game: raw, temp }) => {
-        const game = JSON.parse(raw);
-        this.setState({ game });
-        if (temp) {
-          window.setTimeout(
-            () =>
-              this.channel
-                .push("get")
-                .receive("ok", ({ game: raw }) =>
-                  this.setState({ game: JSON.parse(raw) })
-                ),
-            1500
-          );
-        }
-      })
-      .receive("error", r => console.log(r)); // eslint-disable-line no-console
+    this.channel.push("flip", { x, y });
   }
 
   render() {
@@ -82,21 +94,20 @@ export class Memory extends React.Component {
       state: { loading, game }
     } = this;
     if (loading) return <div>Joining the game...</div>;
-    const { tiles, score, won } = game;
-    const onRestart = () => {
-      this.channel
-        .push("restart")
-        .receive("ok", ({ game }) => this.setState({ game: JSON.parse(game) }));
-    };
+    const { inProgress } = game;
+    const onRestart = () => this.channel.push("restart");
+    const joinGame = () => this.channel.push("join");
     return (
       <div className="memory">
-        <Board tiles={tiles} onTileClicked={tileClicked.bind(this)} />
-        <p>
-          {won
-            ? `You Win! Your final score was: ${score}`
-            : `Your score is: ${score}`}
-        </p>
-        <Restart onRestart={onRestart} />
+        {inProgress ? (
+          <ActiveGame
+            {...game}
+            onRestart={onRestart}
+            tileClicked={tileClicked}
+          />
+        ) : (
+          <Lobby joinGame={joinGame} />
+        )}
       </div>
     );
   }
