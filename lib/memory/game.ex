@@ -2,7 +2,12 @@ defmodule Memory.Game do
   alias Memory.Game.Board
 
   def new() do
-    %{tiles: Board.new(), guesses: [], partial_guess: nil, players: %{}, turn: nil}
+    %{tiles: Board.new(),
+      guesses: [],
+      partial_guess: nil,
+      players: %{},
+      turn: nil,
+      frozen: false}
   end
 
   def won_game(tiles) do
@@ -39,7 +44,6 @@ defmodule Memory.Game do
 
   def add_player(game, user) do
     if Enum.count(game[:players]) < 2 do
-      IO.inspect("there are fewer than 2 players")
       new_game = put_in(game, [:players, user], 0)
       if (!game[:turn]) do
         put_in(new_game, [:turn], user)
@@ -53,7 +57,6 @@ defmodule Memory.Game do
 
   def next_turn(players, user) do
     player_keys = Map.keys(players)
-    IO.inspect(player_keys)
     if ((hd player_keys) == user) do
       hd tl player_keys
     else
@@ -62,51 +65,64 @@ defmodule Memory.Game do
   end
 
   def flip(game, new_guess, user) do
-    %{tiles: tiles, guesses: guesses, partial_guess: pg, players: players, turn: t} = game
-    if (user == t) do
-      if pg do
-        is_correct = Board.same_letter(tiles, pg, new_guess)
-        if is_correct do
-          tile_state = %{ completed: true }
-          new_score = players[user] + 1
-          new_players = put_in(players, [user], new_score)
-          tiles = tiles
-                  |> Board.update_tile(pg, tile_state)
-                  |> Board.update_tile(new_guess, tile_state)
-          {%{tiles: tiles,
-            guesses: [{pg, new_guess}|guesses],
-            partial_guess: nil,
-            players: new_players,
-            turn: next_turn(players, t)}, nil}
+    %{tiles: tiles,
+      guesses: guesses,
+      partial_guess: pg,
+      players: players,
+      turn: t,
+      frozen: frozen} = game
+    if frozen do
+      {game, nil}
+    else
+      if (user == t) do
+        if pg do
+          is_correct = Board.same_letter(tiles, pg, new_guess)
+          if is_correct do
+            tile_state = %{ completed: true }
+            new_score = players[user] + 1
+            new_players = put_in(players, [user], new_score)
+            tiles = tiles
+                    |> Board.update_tile(pg, tile_state)
+                    |> Board.update_tile(new_guess, tile_state)
+            {%{game |
+              tiles: tiles,
+              guesses: [{pg, new_guess}|guesses],
+              partial_guess: nil,
+              players: new_players,
+              turn: next_turn(players, t)}, nil}
+          else
+            tile_state = %{ visible: true }
+            visible_tiles = tiles
+                    |> Board.update_tile(pg, tile_state)
+                    |> Board.update_tile(new_guess, tile_state)
+            tile_state = %{ visible: false }
+            hidden_tiles = tiles
+                    |> Board.update_tile(pg, tile_state)
+                    |> Board.update_tile(new_guess, tile_state)
+            {%{game |
+              tiles: hidden_tiles,
+              guesses: [{pg, new_guess}|guesses],
+              partial_guess: nil,
+              players: players,
+              turn: next_turn(players, t)},
+              %{game |
+                tiles: visible_tiles,
+                guesses: [{pg, new_guess}|guesses],
+                partial_guess: nil,
+                players: players,
+                turn: next_turn(players, t)}}
+          end
         else
-          tile_state = %{ visible: true }
-          visible_tiles = tiles
-                  |> Board.update_tile(pg, tile_state)
-                  |> Board.update_tile(new_guess, tile_state)
-          tile_state = %{ visible: false }
-          hidden_tiles = tiles
-                  |> Board.update_tile(pg, tile_state)
-                  |> Board.update_tile(new_guess, tile_state)
-          {%{tiles: hidden_tiles,
-            guesses: [{pg, new_guess}|guesses],
-            partial_guess: nil,
+        {%{game|
+          tiles: Board.update_tile(tiles, new_guess, %{ visible: true }),
+            guesses: guesses,
+            partial_guess: new_guess,
             players: players,
-            turn: next_turn(players, t)},
-            %{tiles: visible_tiles,
-            guesses: [{pg, new_guess}|guesses],
-            partial_guess: nil,
-            players: players,
-            turn: next_turn(players, t)}}
+            turn: t}, nil}
         end
       else
-        {%{tiles: Board.update_tile(tiles, new_guess, %{ visible: true }),
-          guesses: guesses,
-          partial_guess: new_guess,
-          players: players,
-          turn: t}, nil}
+        {game, nil}
       end
-    else
-      {game, nil}
     end
   end
 

@@ -15,7 +15,6 @@ defmodule MemoryWeb.GamesChannel do
   end
 
   def handle_in("join", _payload, socket) do
-    IO.inspect(socket.assigns[:user])
     {:ok, game} = GameServer.join(socket.assigns[:game], socket.assigns[:user])
     broadcast! socket, "update", %{"game" => game}
     {:noreply, socket}

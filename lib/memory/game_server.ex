@@ -26,7 +26,7 @@ defmodule Memory.GameServer do
   defp get_game(game_name) do
     active_game? = Registry.lookup(Memory.GameRegistry, game_name)
     if length(active_game?) > 0 do
-      [{pid, value}] = active_game?
+      [{pid, _}] = active_game?
       pid
     else
       {:ok, pid} = start(game_name)
@@ -43,7 +43,7 @@ defmodule Memory.GameServer do
   end
 
   def flip(game_name, coords, user) do
-    GenServer.call(get_game(game_name), {:flip, coords, user})
+    GenServer.call(get_game(game_name), {:flip, coords, user, game_name})
   end
 
   def restart(game_name) do
@@ -69,15 +69,24 @@ defmodule Memory.GameServer do
   end
 
   @impl true
-  def handle_call({:flip, coords, user}, _from, state) do
-    IO.inspect(coords)
-    IO.inspect(user)
-    {final_game, temp_game} = Game.flip(state, coords, user)
-    {:reply, {:ok, Game.client_view(if temp_game do temp_game else final_game end)}, final_game}
+  def handle_info({:flip_back, game, name}, _state) do
+    MemoryWeb.Endpoint.broadcast! "games:" <> name, "update", %{"game" => Game.client_view(game)}
+    {:noreply, game}
   end
 
   @impl true
-  def handle_call(:restart, _from, state) do
+  def handle_call({:flip, coords, user, game_name}, _from, state) do
+    {final_game, temp_game} = Game.flip(state, coords, user)
+    if temp_game do
+      Process.send_after(self(), {:flip_back, final_game, game_name}, 1500)
+      {:reply, {:ok, Game.client_view(temp_game)}, Map.put(temp_game, :frozen, true)}
+    else
+      {:reply, {:ok, Game.client_view(final_game)}, final_game}
+    end
+  end
+
+  @impl true
+  def handle_call(:restart, _from, _state) do
     game = Game.new()
     {:reply, {:ok, Game.client_view(game)}, game}
   end
