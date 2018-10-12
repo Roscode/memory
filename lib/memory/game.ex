@@ -16,12 +16,12 @@ defmodule Memory.Game do
   def winner?(tiles, players) do
     if won_game(tiles) do
       player_keys = Map.keys(players)
-      player1_score = Map.fetch(players, player_keys[0])
-      player2_score = Map.fetch(players, player_keys[1])
+      player1_score = Map.fetch(players, hd player_keys)
+      player2_score = Map.fetch(players, hd tl player_keys)
       if player1_score > player2_score do
-        player_keys[0]
+        hd player_keys
       else
-        player_keys[1]
+        hd tl player_keys
       end
     else
       false
