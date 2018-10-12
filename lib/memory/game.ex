@@ -28,7 +28,7 @@ defmodule Memory.Game do
     end
   end
 
-  def client_view(%{tiles: tiles, guesses: g, partial_guess: pg, players: players, turn: t}) do
+  def client_view(%{tiles: tiles, players: players, turn: t}) do
     %{tiles: Board.client_view(tiles),
       winner: winner?(tiles, players),
       players: players,
