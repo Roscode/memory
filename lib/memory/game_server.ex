@@ -69,12 +69,6 @@ defmodule Memory.GameServer do
   end
 
   @impl true
-  def handle_info({:flip_back, game, name}, _state) do
-    MemoryWeb.Endpoint.broadcast! "games:" <> name, "update", %{"game" => Game.client_view(game)}
-    {:noreply, game}
-  end
-
-  @impl true
   def handle_call({:flip, coords, user, game_name}, _from, state) do
     {final_game, temp_game} = Game.flip(state, coords, user)
     if temp_game do
@@ -89,6 +83,12 @@ defmodule Memory.GameServer do
   def handle_call(:restart, _from, _state) do
     game = Game.new()
     {:reply, {:ok, Game.client_view(game)}, game}
+  end
+
+  @impl true
+  def handle_info({:flip_back, game, name}, _state) do
+    MemoryWeb.Endpoint.broadcast! "games:" <> name, "update", %{"game" => Game.client_view(game)}
+    {:noreply, game}
   end
 end
 
